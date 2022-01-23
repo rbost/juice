@@ -1,3 +1,36 @@
+{%- macro i18n_path(path) -%}
+{% if lang == config.default_language %}{{ path }}
+{%- else -%}
+{%- set parts = path | split(pat=".md") -%}
+{%- for part in parts -%}
+{%- if part and not loop.first -%}.md{%- endif -%}
+{%- if not loop.last -%}{{ part }}{%- endif -%}
+{%- endfor -%}
+.{{ lang }}.md
+{%- endif -%}
+{%- endmacro i18n_path -%}
+
+
+{%- macro i18n_url(path) -%}
+{%- if lang == config.default_language -%}{{ get_url(path=path) }}
+{%- else -%}
+{%- set p = lang ~ "/" ~ path -%}{{ get_url(path=p) }}{%- endif -%}
+{%- endmacro i18n_url -%}
+
+
+{# Translate a string in the current language (lang) by looking
+up a key in the config.extra.translations.lang. These translation
+strings extend (and potentially replace) those of the theme. #}
+{%- macro t(key) -%}
+{%- if config.extra.missing_translations|default(value="error") == "error" -%}{{ config.extra.translations[lang][key] }}
+{%- elif config.extra.missing_translations == "placeholder" -%}{{
+config.extra.translations[lang][key]|default(value=key) }}
+{%- else -%}{{
+config.extra.translations[lang][key]|default(value=config.extra.translations[config.extra.missing_translations][key])
+}}{%- endif -%}
+{%- endmacro t -%}
+
+
 {% macro render_header() %}
 {% set section = get_section(path="_index.md") %}
 <a href="{{ section.permalink }}">
@@ -9,7 +42,10 @@
 
 <nav>
     {% for page in section.pages %}
-    <a class="nav-item subtitle-text" href="{{ page.permalink }}">{{ page.title }}</a>
+    {% set i18n_page = get_page(path=macros::i18n_path(path=page.relative_path)) %}
+    <a class="nav-item subtitle-text" href="{{ i18n_page.permalink }}">
+        {{ i18n_page.title }}</a>
+    <!-- <a class="nav-item subtitle-text" href="{{ get_url(path=page.relative_path) }}">{{ page.title }}</a> -->
     {% endfor %}
     {% if config.extra.juice_extra_menu %}
         {% for menu in config.extra.juice_extra_menu %}
